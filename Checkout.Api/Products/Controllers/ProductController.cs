@@ -17,7 +17,7 @@ namespace Checkout.Api.Products.Controllers
 
         [HttpGet("", Name = "GetAllProducts")]
         [ProducesResponseType(typeof(List<Product>), 201)]
-        public ObjectResult GetProducts([FromBody] string fileUrl)
+        public ObjectResult GetProducts()
         {
             var products = repository.GetAllProducts();
             return Ok(products);
