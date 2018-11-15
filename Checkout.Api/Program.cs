@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace Checkout.Api
@@ -19,15 +13,10 @@ namespace Checkout.Api
         public static DirectoryInfo LogsDirInfo;
         public static DirectoryInfo AppDirInfo;
         public static DirectoryInfo PublicFilesDirInfo;
+        public static DirectoryInfo ProductImagesDirInfo;
 
-
-        public static void Main(string[] args)
+        public static void SetupAppDirectories()
         {
-            if (System.Diagnostics.Debugger.IsAttached == false)
-            {
-                System.Diagnostics.Debugger.Launch();
-            }
-
             // Main app folder
             AppDirInfo = new DirectoryInfo(AppHome);
             if (!AppDirInfo.Exists)
@@ -43,13 +32,18 @@ namespace Checkout.Api
             }
 
             // public files folder
-            PublicFilesDirInfo = new DirectoryInfo(Path.Combine(AppHome, "files"));
+            PublicFilesDirInfo = new DirectoryInfo(Path.Combine(AppHome, "public"));
             if (!PublicFilesDirInfo.Exists)
             {
                 PublicFilesDirInfo.Create();
             }
 
+            ProductImagesDirInfo = PublicFilesDirInfo.CreateSubdirectory("images").CreateSubdirectory("products");
+        }
 
+        public static void Main(string[] args)
+        {
+            SetupAppDirectories();
             CreateWebHostBuilder(args).Build().Run();
         }
 

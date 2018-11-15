@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Checkout.Api.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -18,25 +17,7 @@ namespace Checkout.Api.Products.Models
 
         public List<Product> GetAllProducts()
         {
-            var list = new List<Product>
-            {
-                new Product
-                {
-                    Id = 1,
-                    Name = "Bazooka",
-                    ImageFilename = "Bazooka.png",
-                    Description = "blbabla"
-                },
-                new Product
-                {
-                    Id = 2,
-                    Name = "Uzi",
-                    ImageFilename = "Uzi.png",
-                    Description = "blabla"
-                }
-            };
-
-            //list = dbContext.Products.OrderBy(x => x.Name).ToList();
+            var list = dbContext.Products.OrderBy(x => x.Name).ToList();
             return list;
         }
 
@@ -71,5 +52,7 @@ namespace Checkout.Api.Products.Models
             }
             return true;
         }
+
+        public Product Find(int id) => dbContext.Products.FirstOrDefault(c => c.Id == id);
     }
 }

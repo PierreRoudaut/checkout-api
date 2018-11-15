@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Checkout.Api.Products.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Hosting.Internal;
 
 namespace Checkout.Api.Core.Models
 {
@@ -22,10 +15,10 @@ namespace Checkout.Api.Core.Models
         {
         }
 
-        //public AppDbContext()
-        //{
+        public AppDbContext()
+        {
 
-        //}
+        }
 
         public virtual DbSet<Product> Products { get; set; }
 

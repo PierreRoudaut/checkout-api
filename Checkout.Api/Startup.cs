@@ -13,7 +13,7 @@ using Swashbuckle.AspNetCore.Swagger;
 using System.Collections.Generic;
 using System.IO;
 using Checkout.Api.Core.Models;
-using Microsoft.AspNetCore.Http;
+using Checkout.Api.Products.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
@@ -60,6 +60,7 @@ namespace Checkout.Api
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Default")));
 
             services.AddScoped<ProductRepository>();
+            services.AddScoped<ProductImageService>();
 
             services
                 .AddMvc()
@@ -82,7 +83,7 @@ namespace Checkout.Api
             {
                 ServeUnknownFileTypes = true,
                 FileProvider = new PhysicalFileProvider(Program.PublicFilesDirInfo.FullName),
-                RequestPath = "/api/file",
+                RequestPath = "/api/public",
                 OnPrepareResponse = ctx =>
                 {
                     Log.Logger.Information("Serving static file: " + ctx.File.Name);
