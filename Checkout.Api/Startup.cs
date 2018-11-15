@@ -1,21 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Checkout.Api.Products.Models;
+﻿using Checkout.Api.Products.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using Serilog;
 using Swashbuckle.AspNetCore.Swagger;
-using Serilog.Events;
+using System.Collections.Generic;
+using System.IO;
+using Checkout.Api.Core.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 namespace Checkout.Api
 {
@@ -23,13 +23,9 @@ namespace Checkout.Api
     {
         public Startup(IConfiguration configuration)
         {
-            var logDirInfo = new DirectoryInfo(Path.Combine(Path.GetTempPath(), "checkout-api", "logs"));
-            if (!logDirInfo.Exists)
-            {
-                logDirInfo.Create();
-            }
+
             const string LogFilename = "{Date}.checkout-api.log";
-            var logPath = Path.Combine(logDirInfo.FullName, LogFilename);
+            var logPath = Path.Combine(Program.LogsDirInfo.FullName, LogFilename);
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .Enrich.FromLogContext()
@@ -61,25 +57,39 @@ namespace Checkout.Api
                     Version = "v1"
                 });
             });
+            services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Default")));
 
             services.AddScoped<ProductRepository>();
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services
+                .AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
+                .AddJsonOptions(
+                options =>
+                {
+                    options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                    options.SerializerSettings.Converters = new List<JsonConverter> { new StringEnumConverter() };
+                    options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                });
 
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            // Serve medialibrary folder as static
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                ServeUnknownFileTypes = true,
+                FileProvider = new PhysicalFileProvider(Program.PublicFilesDirInfo.FullName),
+                RequestPath = "/api/file",
+                OnPrepareResponse = ctx =>
+                {
+                    Log.Logger.Information("Serving static file: " + ctx.File.Name);
+                }
+            });
 
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                app.UseHsts();
-            }
+            app.UseHsts();
 
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger(c =>
@@ -93,7 +103,7 @@ namespace Checkout.Api
             app.UseSwaggerUI(c =>
             {
                 c.RoutePrefix = "api/swagger";
-                c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "Netpips API v1");
+                c.SwaggerEndpoint("/api/swagger/v1/swagger.json", "v1");
             });
 
             // CORS
