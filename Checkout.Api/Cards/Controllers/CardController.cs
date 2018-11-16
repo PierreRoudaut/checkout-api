@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Checkout.Api.Products.Models;
-using Microsoft.AspNetCore.Http;
+﻿using Checkout.Api.Cards.Models;
+using Checkout.Api.Cards.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace Checkout.Api.Cards.Controllers
 {
@@ -14,17 +9,12 @@ namespace Checkout.Api.Cards.Controllers
     [ApiController]
     public class CardController : ControllerBase
     {
-        /// <summary>
-        /// Fetch a given Card
-        /// </summary>
-        /// <returns></returns>
-        [HttpPut("new", Name = "Card")]
-        [ProducesResponseType(typeof(string), 201)]
-        public ObjectResult NewCard()
-        {
-            return StatusCode(200, product);
-        }
+        private readonly CardService service;
 
+        public CardController(CardService service)
+        {
+            this.service = service;
+        }
 
         /// <summary>
         /// Fetch a given Card
@@ -32,34 +22,45 @@ namespace Checkout.Api.Cards.Controllers
         /// <returns></returns>
         [HttpGet("{cardId}", Name = "Card")]
         [ProducesResponseType(typeof(Card), 200)]
-        [ProducesResponseType(404)]
-        public ObjectResult GetCard([Required] string cardId)
+        public ObjectResult GetCard([Required] string cardId = null)
         {
-            return StatusCode(200, product);
+            var card = service.GetOrCreateCard(cardId);
+            return StatusCode(200, card);
         }
 
         /// <summary>
         /// Empty all items of a given card
         /// </summary>
         /// <returns></returns>
-        [HttpPost("{cardId}/empty", Name = "EmptyCard")]
-        [ProducesResponseType(typeof(Card), 200)]
-        [ProducesResponseType(404)]
-        public ObjectResult EmptyCard([Required] string cardId)
-        {
-            return StatusCode(200, product);
-        }
-
-        /// <summary>
-        /// Empty all items of a given card
-        /// </summary>
-        /// <returns></returns>
-        [HttpPost("{cardId}/addItem", Name = "AddItemToCard")]
+        [HttpPost("{cardId}/clear", Name = "ClearCard")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public ObjectResult AddItem([FromBody] CardItem cardItem)
+        public ObjectResult ClearCard([Required] string cardId)
         {
-            return StatusCode(200, product);
+            if (!service.ClearCard(cardId))
+            {
+                return StatusCode(404, new
+                {
+                    Message = "Card not found"
+                });
+            }
+            return StatusCode(200, true);
+        }
+
+        /// <summary>
+        /// Adds or replace a CardItem into a given Card
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost("{cardId}/setItem", Name = "SetItemToCard")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public ObjectResult SetItem([Required] string cardId, [FromBody] CardItem cardItem)
+        {
+            if (!service.SetCardItem(cardId, cardItem, out var error))
+            {
+                return StatusCode(error.StatusCode, new { error.Message });
+            }
+            return StatusCode(200, true);
         }
 
         /// <summary>
@@ -69,33 +70,13 @@ namespace Checkout.Api.Cards.Controllers
         [HttpPost("{cardId}/removeItem", Name = "RemoveItemFromCard")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public ObjectResult RemoveItem([FromBody] CardItem cardItem)
+        public ObjectResult RemoveItem([Required] string cardId, [FromBody] CardItem cardItem)
         {
-            return StatusCode(200, product);
+            if (!service.RemoveCardItem(cardId, cardItem))
+            {
+                return StatusCode(404, new {Message = "Card not found"});
+            }
+            return StatusCode(200, true);
         }
-
-        /// <summary>
-        /// Update card item quantity
-        /// </summary>
-        /// <returns></returns>
-        [HttpPost("{cardId}/updateItemQuantity", Name = "UpdateItemQuantity")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(404)]
-        public ObjectResult UpdateItemQuantity([FromBody] CardItem cardItem)
-        {
-            return StatusCode(200, product);
-        }
-    }
-
-    public class Card
-    {
-        public string Id { get; set; }
-        public List<CardItem> CardItems { get; set; }
-    }
-
-    public class CardItem
-    {
-        public int ProductId { get; set; }
-        public int Quantity { get; set; }
     }
 }

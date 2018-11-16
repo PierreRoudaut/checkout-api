@@ -1,6 +1,4 @@
-﻿using System;
-using Checkout.Api.Products.Models;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace Checkout.Api.Tests.Products.Models
 {
