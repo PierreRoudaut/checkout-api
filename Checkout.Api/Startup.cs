@@ -12,6 +12,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Swagger;
 using System.Collections.Generic;
 using System.IO;
+using Checkout.Api.Cards.Services;
 using Checkout.Api.Core.Models;
 using Checkout.Api.Products.Services;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,7 @@ namespace Checkout.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddMemoryCache();
             services.AddCors();
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddMemoryCache();
@@ -61,6 +63,7 @@ namespace Checkout.Api
 
             services.AddScoped<ProductRepository>();
             services.AddScoped<ProductImageService>();
+            services.AddScoped<CardService>();
 
             services
                 .AddMvc()
