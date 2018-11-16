@@ -9,12 +9,12 @@ namespace Checkout.Api.Products.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ProductController : ControllerBase
+    public class ProductsController : ControllerBase
     {
-        private readonly ProductRepository repository;
+        private readonly IProductRepository repository;
         private readonly ProductImageService productImageService;
 
-        public ProductController(ProductRepository repository, ProductImageService productImageService)
+        public ProductsController(IProductRepository repository, ProductImageService productImageService)
         {
             this.repository = repository;
             this.productImageService = productImageService;

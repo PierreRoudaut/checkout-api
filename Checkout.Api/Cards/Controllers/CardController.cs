@@ -29,7 +29,7 @@ namespace Checkout.Api.Cards.Controllers
         }
 
         /// <summary>
-        /// Empty all items of a given card
+        /// Clear all items of a given card
         /// </summary>
         /// <returns></returns>
         [HttpPost("{cardId}/clear", Name = "ClearCard")]
@@ -51,7 +51,7 @@ namespace Checkout.Api.Cards.Controllers
         /// Adds or replace a CardItem into a given Card
         /// </summary>
         /// <returns></returns>
-        [HttpPost("{cardId}/setItem", Name = "SetItemToCard")]
+        [HttpPut("{cardId}/setItem", Name = "SetItemToCard")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         public ObjectResult SetItem([Required] string cardId, [FromBody] CardItem cardItem)
@@ -67,14 +67,14 @@ namespace Checkout.Api.Cards.Controllers
         /// Empty all items of a given card
         /// </summary>
         /// <returns></returns>
-        [HttpPost("{cardId}/removeItem", Name = "RemoveItemFromCard")]
+        [HttpDelete("{cardId}/removeItem", Name = "RemoveItemFromCard")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         public ObjectResult RemoveItem([Required] string cardId, [FromBody] CardItem cardItem)
         {
             if (!service.RemoveCardItem(cardId, cardItem))
             {
-                return StatusCode(404, new {Message = "Card not found"});
+                return StatusCode(404, new { Message = "Card not found" });
             }
             return StatusCode(200, true);
         }

@@ -17,7 +17,7 @@ namespace Checkout.Api.Cards.Services
         private readonly IMemoryCache memoryCache;
         private readonly IProductRepository productRepository;
 
-        private const string CardKeyFormat = "[card][{0}]";
+        private const string CardCacheKeyFormat = "[card][{0}]";
 
         public static MemoryCacheEntryOptions CacheEntryOptions = new MemoryCacheEntryOptions
         {
@@ -37,7 +37,7 @@ namespace Checkout.Api.Cards.Services
         /// <returns></returns>
         public Card GetOrCreateCard(string cardId = null)
         {
-            if (cardId != null && memoryCache.TryGetValue(string.Format(CardKeyFormat, cardId), out Card card))
+            if (cardId != null && memoryCache.TryGetValue(string.Format(CardCacheKeyFormat, cardId), out Card card))
             {
                 return card;
             }
@@ -47,11 +47,8 @@ namespace Checkout.Api.Cards.Services
                 Id = Guid.NewGuid().ToString("N"),
                 CardItems = new Dictionary<int, CardItem>()
             };
-            var entry = memoryCache.CreateEntry(string.Format(CardKeyFormat, card.Id));
-            entry.Value = card;
-            entry.SlidingExpiration = TimeSpan.FromMinutes(10);
 
-            //memoryCache.Set(string.Format(CardKeyFormat, card.Id), card, CacheEntryOptions);
+            memoryCache.Set(string.Format(CardCacheKeyFormat, card.Id), card, CacheEntryOptions);
             return card;
         }
 
@@ -62,7 +59,7 @@ namespace Checkout.Api.Cards.Services
         /// <returns></returns>
         public bool ClearCard(string cardId)
         {
-            if (!memoryCache.TryGetValue(string.Format(CardKeyFormat, cardId), out Card card))
+            if (!memoryCache.TryGetValue(string.Format(CardCacheKeyFormat, cardId), out Card card))
             {
                 return false;
             }
@@ -97,7 +94,7 @@ namespace Checkout.Api.Cards.Services
                 return false;
             }
 
-            if (!memoryCache.TryGetValue(string.Format(CardKeyFormat, cardId), out Card card))
+            if (!memoryCache.TryGetValue(string.Format(CardCacheKeyFormat, cardId), out Card card))
             {
                 error.StatusCode = 404;
                 error.Message = "Card not found";
@@ -117,7 +114,7 @@ namespace Checkout.Api.Cards.Services
         /// <returns></returns>
         public bool RemoveCardItem(string cardId, CardItem item)
         {
-            if (!memoryCache.TryGetValue(string.Format(CardKeyFormat, cardId), out Card card))
+            if (!memoryCache.TryGetValue(string.Format(CardCacheKeyFormat, cardId), out Card card))
             {
                 return false;
             }
