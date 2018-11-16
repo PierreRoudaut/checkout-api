@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Checkout.Api.Products.Models
 {
-    public class ProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly AppDbContext dbContext;
 

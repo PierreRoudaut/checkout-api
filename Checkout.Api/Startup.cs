@@ -24,7 +24,6 @@ namespace Checkout.Api
     {
         public Startup(IConfiguration configuration)
         {
-
             const string LogFilename = "{Date}.checkout-api.log";
             var logPath = Path.Combine(Program.LogsDirInfo.FullName, LogFilename);
             Log.Logger = new LoggerConfiguration()
@@ -61,7 +60,7 @@ namespace Checkout.Api
             });
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Default")));
 
-            services.AddScoped<ProductRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<ProductImageService>();
             services.AddScoped<CardService>();
 

@@ -1,4 +1,5 @@
-﻿using Checkout.Api.Cards.Models;
+﻿using System;
+using Checkout.Api.Cards.Models;
 using Checkout.Api.Cards.Services;
 using Checkout.Api.Products.Models;
 using Microsoft.Extensions.Caching.Memory;
@@ -13,14 +14,17 @@ namespace Checkout.Api.Tests.Cards
     [TestFixture]
     public class CardServiceTests
     {
-        private Mock<ProductRepository> repository;
+        private Mock<IProductRepository> repository;
         private Mock<IMemoryCache> memoryCache;
+        private Mock<ICacheEntry> cacheEntry;
 
         [SetUp]
         public void Setup()
         {
+            cacheEntry = new Mock<ICacheEntry>();
             memoryCache = new Mock<IMemoryCache>();
-            repository = new Mock<ProductRepository>();
+            memoryCache.Setup(x => x.CreateEntry(It.IsAny<string>())).Returns(cacheEntry.Object);
+            repository = new Mock<IProductRepository>();
         }
 
         [TestCase(null, 0)]
@@ -31,10 +35,12 @@ namespace Checkout.Api.Tests.Cards
             var card = new Card();
             if (nbItems > 0)
             {
-                card.CardItems.Add(42, new CardItem());
+                card.CardItems = new Dictionary<int, CardItem> { { 42, new CardItem()}};
             }
 
-            memoryCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out card)).Returns(false);
+            var obj = (object) card;
+            memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(nbItems > 0);
+
             var service = new CardService(memoryCache.Object, repository.Object);
             var retrievedCard = service.GetOrCreateCard(cardId);
 
@@ -45,7 +51,9 @@ namespace Checkout.Api.Tests.Cards
         public void ClearCardTestCaseNotFound()
         {
             var card = new Card();
-            memoryCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out card)).Returns(false);
+            var obj = (object)card;
+
+            memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(false);
             var service = new CardService(memoryCache.Object, repository.Object);
             Assert.IsFalse(service.ClearCard("123"));
         }
@@ -57,8 +65,9 @@ namespace Checkout.Api.Tests.Cards
             {
                 CardItems = new Dictionary<int, CardItem> { { 42, new CardItem() } }
             };
+            var obj = (object)card;
 
-            memoryCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out card)).Returns(false);
+            memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
             var service = new CardService(memoryCache.Object, repository.Object);
 
             Assert.IsTrue(service.ClearCard("123"));
@@ -94,7 +103,9 @@ namespace Checkout.Api.Tests.Cards
             var card = new Card();
             var product = new Product();
             repository.Setup(x => x.Find(It.IsAny<int>())).Returns(product);
-            memoryCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out card)).Returns(false);
+            var obj = (object)card;
+
+            memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(false);
             var service = new CardService(memoryCache.Object, repository.Object);
             var error = new CardOperationError();
             Assert.IsFalse(service.SetCardItem("123", new CardItem { Quantity = 1, ProductId = 42 }, out error));
@@ -111,8 +122,10 @@ namespace Checkout.Api.Tests.Cards
                 CardItems = new Dictionary<int, CardItem> { { 42, new CardItem { Quantity = 1, ProductId = 42 } } }
             };
             var product = new Product();
+            var obj = (object)card;
+
             repository.Setup(x => x.Find(It.IsAny<int>())).Returns(product);
-            memoryCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out card)).Returns(true);
+            memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
             var service = new CardService(memoryCache.Object, repository.Object);
             var error = new CardOperationError();
             Assert.IsTrue(service.SetCardItem("123", new CardItem { Quantity = 3, ProductId = 42 }, out error));
@@ -126,7 +139,9 @@ namespace Checkout.Api.Tests.Cards
         public void RemoveCardItemTestCaseNotFound()
         {
             var card = new Card();
-            memoryCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out card)).Returns(false);
+            var obj = (object)card;
+
+            memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(false);
             var service = new CardService(memoryCache.Object, repository.Object);
             Assert.IsFalse(service.RemoveCardItem("123", new CardItem()));
         }
@@ -141,8 +156,9 @@ namespace Checkout.Api.Tests.Cards
                     { 43, new CardItem { ProductId = 43, Quantity = 2 } }
                 }
             };
+            var obj = (object)card;
 
-            memoryCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out card)).Returns(true);
+            memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
             var service = new CardService(memoryCache.Object, repository.Object);
 
             Assert.IsTrue(service.RemoveCardItem("123", new CardItem { ProductId = 42, Quantity = 2 }));

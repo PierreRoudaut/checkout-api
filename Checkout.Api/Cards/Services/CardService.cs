@@ -1,11 +1,8 @@
-﻿using Checkout.Api.Cards.Controllers;
+﻿using Checkout.Api.Cards.Models;
+using Checkout.Api.Products.Models;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using Checkout.Api.Cards.Models;
-using Checkout.Api.Products.Models;
 
 namespace Checkout.Api.Cards.Services
 {
@@ -18,18 +15,23 @@ namespace Checkout.Api.Cards.Services
     public class CardService
     {
         private readonly IMemoryCache memoryCache;
-        private readonly ProductRepository productRepository;
+        private readonly IProductRepository productRepository;
 
         private const string CardKeyFormat = "[card][{0}]";
 
-        public CardService(IMemoryCache memoryCache, ProductRepository productRepository)
+        public static MemoryCacheEntryOptions CacheEntryOptions = new MemoryCacheEntryOptions
+        {
+            SlidingExpiration = TimeSpan.FromMinutes(10)
+        };
+
+        public CardService(IMemoryCache memoryCache, IProductRepository productRepository)
         {
             this.memoryCache = memoryCache;
             this.productRepository = productRepository;
         }
 
         /// <summary>
-        /// 
+        /// Retrieves an existing card or create a new one
         /// </summary>
         /// <param name="cardId"></param>
         /// <returns></returns>
@@ -40,16 +42,16 @@ namespace Checkout.Api.Cards.Services
                 return card;
             }
 
-            // if card is expired we create a new card for
             card = new Card
             {
                 Id = Guid.NewGuid().ToString("N"),
                 CardItems = new Dictionary<int, CardItem>()
             };
-            memoryCache.Set(string.Format(CardKeyFormat, card.Id), card, new MemoryCacheEntryOptions
-            {
-                SlidingExpiration = TimeSpan.FromMinutes(30)
-            });
+            var entry = memoryCache.CreateEntry(string.Format(CardKeyFormat, card.Id));
+            entry.Value = card;
+            entry.SlidingExpiration = TimeSpan.FromMinutes(10);
+
+            //memoryCache.Set(string.Format(CardKeyFormat, card.Id), card, CacheEntryOptions);
             return card;
         }
 
@@ -64,8 +66,9 @@ namespace Checkout.Api.Cards.Services
             {
                 return false;
             }
+
             card.CardItems.Clear();
-            memoryCache.Set(cardId, card);
+            memoryCache.Set(cardId, card, CacheEntryOptions);
             return true;
         }
 
@@ -93,14 +96,16 @@ namespace Checkout.Api.Cards.Services
                 error.Message = "Product does not exists";
                 return false;
             }
+
             if (!memoryCache.TryGetValue(string.Format(CardKeyFormat, cardId), out Card card))
             {
                 error.StatusCode = 404;
                 error.Message = "Card not found";
                 return false;
             }
+
             card.CardItems[item.ProductId] = item;
-            memoryCache.Set(cardId, card);
+            memoryCache.Set(cardId, card, CacheEntryOptions);
             return true;
         }
 
@@ -118,7 +123,7 @@ namespace Checkout.Api.Cards.Services
             }
 
             card.CardItems.Remove(item.ProductId);
-            memoryCache.Set(cardId, card);
+            memoryCache.Set(cardId, card, CacheEntryOptions);
             return true;
         }
     }
