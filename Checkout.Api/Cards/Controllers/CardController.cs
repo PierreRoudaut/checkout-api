@@ -7,6 +7,7 @@ namespace Checkout.Api.Cards.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Produces("application/json")]
     public class CardController : ControllerBase
     {
         private readonly CardService service;
@@ -22,7 +23,7 @@ namespace Checkout.Api.Cards.Controllers
         /// <returns></returns>
         [HttpGet("{cardId}", Name = "Card")]
         [ProducesResponseType(typeof(Card), 200)]
-        public ObjectResult GetCard([Required] string cardId = null)
+        public ObjectResult GetCard(string cardId = null)
         {
             var card = service.GetOrCreateCard(cardId);
             return StatusCode(200, card);
@@ -51,7 +52,7 @@ namespace Checkout.Api.Cards.Controllers
         /// Adds or replace a CardItem into a given Card
         /// </summary>
         /// <returns></returns>
-        [HttpPut("{cardId}/setItem", Name = "SetItemToCard")]
+        [HttpPost("{cardId}/setItem", Name = "SetItemToCard")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         public ObjectResult SetItem([Required] string cardId, [FromBody] CardItem cardItem)

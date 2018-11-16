@@ -1,14 +1,16 @@
-﻿using System;
-using Checkout.Api.Products.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.IO;
+﻿using Checkout.Api.Products.Models;
 using Checkout.Api.Products.Services;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
 
 namespace Checkout.Api.Products.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Produces("application/json")]
     public class ProductsController : ControllerBase
     {
         private readonly IProductRepository repository;
@@ -47,7 +49,7 @@ namespace Checkout.Api.Products.Controllers
                     Message = "Failed to create user"
                 });
             }
-            
+
             productImageService.SaveProductImage(product.Image, product.ImageFilename);
 
             return StatusCode(201, product);
@@ -105,6 +107,35 @@ namespace Checkout.Api.Products.Controllers
             }
 
             return StatusCode(200, product);
+        }
+
+        /// <summary>
+        /// Delete a product as well as its image resource
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpDelete("delete/{id}", Name = "DeleteProduct")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public ObjectResult DeleteProduct([Required] int id)
+        {
+            var product = repository.Find(id);
+            if (product == null)
+            {
+                return StatusCode(404, new
+                {
+                    Message = "Product not found"
+                });
+            }
+
+            if (!repository.Delete(product))
+            {
+                return StatusCode(400, new { Message = "Failed to delete product" });
+            }
+
+            productImageService.DeleteProductImage(product.ImageFilename);
+            return StatusCode(200, true);
         }
 
         [HttpGet("", Name = "GetAllProducts")]

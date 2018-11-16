@@ -15,12 +15,21 @@ namespace Checkout.Api.Products.Models
             this.dbContext = dbContext;
         }
 
+        /// <summary>
+        /// Retrieve all products
+        /// </summary>
+        /// <returns></returns>
         public List<Product> GetAllProducts()
         {
             var list = dbContext.Products.OrderBy(x => x.Name).ToList();
             return list;
         }
 
+        /// <summary>
+        /// Create a given product
+        /// </summary>
+        /// <param name="product"></param>
+        /// <returns></returns>
         public bool CreateProduct(Product product)
         {
             try
@@ -30,13 +39,18 @@ namespace Checkout.Api.Products.Models
             }
             catch (DbUpdateException ex)
             {
-                Log.Error("Failed to add user: " + product.Name);
+                Log.Error("Failed to create product: " + product.Name);
                 Log.Error(ex.Message);
                 return false;
             }
             return true;
         }
 
+        /// <summary>
+        /// Updates a product
+        /// </summary>
+        /// <param name="product"></param>
+        /// <returns></returns>
         public bool UpdateProduct(Product product)
         {
             try
@@ -46,13 +60,39 @@ namespace Checkout.Api.Products.Models
             }
             catch (DbUpdateException ex)
             {
-                Log.Error("Failed to update user: " + product.Name);
+                Log.Error("Failed to update product: " + product.Name);
                 Log.Error(ex.Message);
                 return false;
             }
             return true;
         }
 
+        /// <summary>
+        /// Deletes a given product
+        /// </summary>
+        /// <param name="product"></param>
+        /// <returns></returns>
+        public bool Delete(Product product)
+        {
+            try
+            {
+                dbContext.Entry(product).State = EntityState.Deleted;
+                dbContext.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                Log.Error("Failed to delete product: " + product.Name);
+                Log.Error(ex.Message);
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Finds a product by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public Product Find(int id) => dbContext.Products.FirstOrDefault(c => c.Id == id);
     }
 }

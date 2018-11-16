@@ -8,5 +8,6 @@ namespace Checkout.Api.Products.Models
         Product Find(int id);
         List<Product> GetAllProducts();
         bool UpdateProduct(Product product);
+        bool Delete(Product product);
     }
 }
