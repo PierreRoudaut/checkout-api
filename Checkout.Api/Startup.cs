@@ -12,7 +12,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Swagger;
 using System.Collections.Generic;
 using System.IO;
-using Checkout.Api.Cards.Services;
+using Checkout.Api.Carts.Services;
 using Checkout.Api.Core.Models;
 using Checkout.Api.Products.Services;
 using Microsoft.EntityFrameworkCore;
@@ -62,7 +62,7 @@ namespace Checkout.Api
 
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<ProductImageService>();
-            services.AddScoped<CardService>();
+            services.AddScoped<CartService>();
 
             services
                 .AddMvc()
@@ -92,7 +92,6 @@ namespace Checkout.Api
                 }
             });
 
-            app.UseHsts();
 
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger(c =>
@@ -111,12 +110,15 @@ namespace Checkout.Api
 
             // CORS
             app.UseCors(builder => builder
+                .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
             );
             app.UseRequestLocalization(builder => { builder.DefaultRequestCulture = new RequestCulture(Program.EnUsCulture); });
 
-            app.UseHttpsRedirection();
+            //app.UseHsts();
+            //app.UseHttpsRedirection();
+
             app.UseMvc();
         }
     }
