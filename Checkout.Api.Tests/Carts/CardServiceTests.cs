@@ -143,7 +143,7 @@ namespace Checkout.Api.Tests.Carts
 
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(false);
             var service = new CartService(memoryCache.Object, repository.Object);
-            Assert.IsFalse(service.RemoveCartItem("123", new CartItem()));
+            Assert.IsFalse(service.RemoveCartItem("123", 42));
         }
 
         [Test]
@@ -151,6 +151,7 @@ namespace Checkout.Api.Tests.Carts
         {
             var cart = new Cart
             {
+                Id = "123",
                 CartItems = new Dictionary<int, CartItem> {
                     { 42, new CartItem { ProductId = 42, Quantity = 2 } },
                     { 43, new CartItem { ProductId = 43, Quantity = 2 } }
@@ -161,7 +162,7 @@ namespace Checkout.Api.Tests.Carts
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
             var service = new CartService(memoryCache.Object, repository.Object);
 
-            Assert.IsTrue(service.RemoveCartItem("123", new CartItem { ProductId = 42, Quantity = 2 }));
+            Assert.IsTrue(service.RemoveCartItem("123", 42));
             Assert.AreEqual(1, cart.CartItems.Count);
         }
     }

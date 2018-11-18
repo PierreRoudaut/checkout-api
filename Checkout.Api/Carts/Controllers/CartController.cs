@@ -68,12 +68,12 @@ namespace Checkout.Api.Carts.Controllers
         /// Empty all items of a given cart
         /// </summary>
         /// <returns></returns>
-        [HttpDelete("{cartId}/removeItem", Name = "RemoveItemFromCart")]
+        [HttpDelete("{cartId}/removeItem/{productId}", Name = "RemoveItemFromCart")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public ObjectResult RemoveItem([Required] string cartId, [FromBody] CartItem cartItem)
+        public ObjectResult RemoveItem([Required] string cartId, [Required] int productId)
         {
-            if (!service.RemoveCartItem(cartId, cartItem))
+            if (!service.RemoveCartItem(cartId, productId))
             {
                 return StatusCode(404, new { Message = "Cart not found" });
             }

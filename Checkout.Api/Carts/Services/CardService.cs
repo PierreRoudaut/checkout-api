@@ -112,14 +112,14 @@ namespace Checkout.Api.Carts.Services
         /// <param name="cartId"></param>
         /// <param name="item"></param>
         /// <returns></returns>
-        public bool RemoveCartItem(string cartId, CartItem item)
+        public bool RemoveCartItem(string cartId, int productId)
         {
             if (!memoryCache.TryGetValue(string.Format(CartCacheKeyFormat, cartId), out Cart cart))
             {
                 return false;
             }
 
-            cart.CartItems.Remove(item.ProductId);
+            cart.CartItems.Remove(productId);
             memoryCache.Set(cartId, cart, CacheEntryOptions);
             return true;
         }
