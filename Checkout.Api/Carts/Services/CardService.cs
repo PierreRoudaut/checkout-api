@@ -2,7 +2,10 @@
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Checkout.Api.Carts.Models;
+using Microsoft.Extensions.Primitives;
+using Serilog;
 
 namespace Checkout.Api.Carts.Services
 {
@@ -19,10 +22,25 @@ namespace Checkout.Api.Carts.Services
 
         private const string CartCacheKeyFormat = "[cart][{0}]";
 
-        public static MemoryCacheEntryOptions CacheEntryOptions = new MemoryCacheEntryOptions
+        public MemoryCacheEntryOptions CreateCacheEntryExtensions()
         {
-            SlidingExpiration = TimeSpan.FromMinutes(10)
-        };
+            var expirationMinutes = 10;
+            var expirationTime = DateTime.Now.AddMinutes(expirationMinutes);
+            var expirationToken = new CancellationChangeToken(
+                new CancellationTokenSource(TimeSpan.FromMinutes(expirationMinutes)).Token);
+
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetPriority(CacheItemPriority.NeverRemove)
+                .SetAbsoluteExpiration(expirationTime)
+                .AddExpirationToken(expirationToken)
+                .RegisterPostEvictionCallback(callback: CacheItemRemoved, state: this);
+            return cacheEntryOptions;
+        }
+
+        private void CacheItemRemoved(object key, object value, EvictionReason reason, object state)
+        {
+            Log.Information(key + " was removed");
+        }
 
         public CartService(IMemoryCache memoryCache, IProductRepository productRepository)
         {
@@ -48,7 +66,7 @@ namespace Checkout.Api.Carts.Services
                 CartItems = new Dictionary<int, CartItem>()
             };
 
-            memoryCache.Set(string.Format(CartCacheKeyFormat, cart.Id), cart, CacheEntryOptions);
+            memoryCache.Set(string.Format(CartCacheKeyFormat, cart.Id), cart, CreateCacheEntryExtensions());
             return cart;
         }
 
@@ -65,7 +83,7 @@ namespace Checkout.Api.Carts.Services
             }
 
             cart.CartItems.Clear();
-            memoryCache.Set(cartId, cart, CacheEntryOptions);
+            memoryCache.Set(cartId, cart, CreateCacheEntryExtensions());
             return true;
         }
 
@@ -102,7 +120,7 @@ namespace Checkout.Api.Carts.Services
             }
 
             cart.CartItems[item.ProductId] = item;
-            memoryCache.Set(cartId, cart, CacheEntryOptions);
+            memoryCache.Set(cartId, cart, CreateCacheEntryExtensions());
             return true;
         }
 
@@ -110,7 +128,7 @@ namespace Checkout.Api.Carts.Services
         /// Removes an item for a given cart
         /// </summary>
         /// <param name="cartId"></param>
-        /// <param name="item"></param>
+        /// <param name="productId"></param>
         /// <returns></returns>
         public bool RemoveCartItem(string cartId, int productId)
         {
@@ -120,7 +138,7 @@ namespace Checkout.Api.Carts.Services
             }
 
             cart.CartItems.Remove(productId);
-            memoryCache.Set(cartId, cart, CacheEntryOptions);
+            memoryCache.Set(cartId, cart, CreateCacheEntryExtensions());
             return true;
         }
     }
