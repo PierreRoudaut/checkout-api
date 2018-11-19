@@ -30,17 +30,15 @@ namespace Checkout.Api.Products.Controllers
         [HttpPost("create", Name = "CreateProduct")]
         [ProducesResponseType(typeof(Product), 201)]
         [ProducesResponseType(400)]
-        public ObjectResult CreateProduct([FromForm] Product product)
+        public ObjectResult CreateProduct([FromBody] Product product)
         {
-            if (product.Image == null || !productImageService.IsImageValid(product.Image))
+            if (!productImageService.IsImageValid(product.ImageUrl))
             {
                 return StatusCode(400, new
                 {
-                    Message = "The image should be a valid png/jpeg lower than 10 MB"
+                    Message = "The image should be a valid png/jpeg smaller than 10 MB"
                 });
             }
-
-            product.ImageFilename = Guid.NewGuid().ToString("N") + Path.GetExtension(product.Image.FileName);
 
             if (!repository.CreateProduct(product))
             {
@@ -49,8 +47,6 @@ namespace Checkout.Api.Products.Controllers
                     Message = "Failed to create user"
                 });
             }
-
-            productImageService.SaveProductImage(product.Image, product.ImageFilename);
 
             return StatusCode(201, product);
         }
@@ -64,30 +60,22 @@ namespace Checkout.Api.Products.Controllers
         [ProducesResponseType(typeof(Product), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public ObjectResult UpdateProduct([FromForm] Product product)
+        public ObjectResult UpdateProduct([FromBody] Product product)
         {
-            var existingProduct = repository.Find(product.Id);
-            if (existingProduct == null)
+            if (!repository.Exists(product.Id))
             {
                 return StatusCode(404, new
                 {
                     Message = "Product not found"
                 });
             }
-            var oldFilename = existingProduct.ImageFilename;
 
-
-            if (product.Image != null)
+            if (!productImageService.IsImageValid(product.ImageUrl))
             {
-                if (!productImageService.IsImageValid(product.Image))
+                return StatusCode(400, new
                 {
-                    return StatusCode(400, new
-                    {
-                        Message = "The image should be a valid png/jpeg lower than 10 MB"
-                    });
-                }
-                oldFilename = product.ImageFilename;
-                product.ImageFilename = Guid.NewGuid().ToString("N") + Path.GetExtension(product.Image.FileName);
+                    Message = "The image should be a valid png/jpeg smaller than 10 MB"
+                });
             }
 
             // updating product
@@ -98,14 +86,6 @@ namespace Checkout.Api.Products.Controllers
                     Message = "Failed to update user"
                 });
             }
-
-            // persisting new image
-            if (product.Image != null)
-            {
-                productImageService.DeleteProductImage(oldFilename);
-                productImageService.SaveProductImage(product.Image, product.ImageFilename);
-            }
-
             return StatusCode(200, product);
         }
 
@@ -134,7 +114,6 @@ namespace Checkout.Api.Products.Controllers
                 return StatusCode(400, new { Message = "Failed to delete product" });
             }
 
-            productImageService.DeleteProductImage(product.ImageFilename);
             return StatusCode(200, true);
         }
 

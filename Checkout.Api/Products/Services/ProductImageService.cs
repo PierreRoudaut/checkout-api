@@ -1,8 +1,7 @@
 ﻿
-using System.IO;
 using System.Linq;
+using System.Net.Http;
 using Humanizer.Bytes;
-using Microsoft.AspNetCore.Http;
 
 namespace Checkout.Api.Products.Services
 {
@@ -13,44 +12,31 @@ namespace Checkout.Api.Products.Services
         private static readonly string[] ImageMimeTypes = { "image/jpeg", "image/png" };
 
         /// <summary>
-        /// Stores the uploaded image of a given product.
-        /// Delete any files
+        /// Validates that the registered image url associated to the product is a valid image smaller than 10 MB
         /// </summary>
-        /// <param name="image"></param>
-        /// <param name="filename"></param>
-        public void SaveProductImage(IFormFile image, string filename)
-        {
-            Program.ProductImagesDirInfo.Refresh();
-            var filePath = Path.Combine(Program.ProductImagesDirInfo.FullName, filename);
-            var target = new FileStream(filePath, FileMode.Create);
-            image.CopyTo(target);
-        }
-
-        public void DeleteProductImage(string filename)
-        {
-            Program.ProductImagesDirInfo.Refresh();
-            var filePath = Path.Combine(Program.ProductImagesDirInfo.FullName, filename);
-        }
-
-
-        /// <summary>
-        /// Validates that the uploaded file associated to the product is a valid image smaller than 10 MB
-        /// </summary>
-        /// <param name="file"></param>
+        /// <param name="imageUrl"></param>
         /// <returns></returns>
-        public bool IsImageValid(IFormFile file)
+        public bool IsImageValid(string imageUrl)
         {
-            if (!ImageMimeTypes.Contains(file.ContentType))
+            var request = new HttpRequestMessage(HttpMethod.Head, imageUrl);
+            using (var client = new HttpClient())
             {
-                return false;
-            }
+                HttpResponseMessage response;
+                try
+                {
+                    response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).Result;
+                }
+                catch
+                {
+                    return false;
+                }
+                if (!ImageMimeTypes.Contains(response.Content.Headers?.ContentType.MediaType))
+                {
+                    return false;
+                }
 
-            if (file.Length > MaxImageAllowedSize)
-            {
-                return false;
+                return response.Content.Headers?.ContentLength <= MaxImageAllowedSize;
             }
-
-            return true;
         }
     }
 }

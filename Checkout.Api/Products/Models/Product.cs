@@ -14,11 +14,7 @@ namespace Checkout.Api.Products.Models
         public string Description { get; set; }
         public string Category { get; set; }
         public double Price { get; set; }
-        public string ImageFilename { get; set; }
+        public string ImageUrl { get; set; }
         public int Stock { get; set; }
-
-        [JsonIgnore]
-        [NotMapped]
-        public IFormFile Image { get; set; }
     }
 }

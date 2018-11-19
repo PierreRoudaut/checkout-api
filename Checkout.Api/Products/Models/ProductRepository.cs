@@ -94,5 +94,12 @@ namespace Checkout.Api.Products.Models
         /// <param name="id"></param>
         /// <returns></returns>
         public Product Find(int id) => dbContext.Products.FirstOrDefault(c => c.Id == id);
+
+        /// <summary>
+        /// Check if a given product with id exists
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool Exists(int id) => dbContext.Products.Any(c => c.Id == id);
     }
 }

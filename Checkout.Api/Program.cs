@@ -38,7 +38,6 @@ namespace Checkout.Api
                 PublicFilesDirInfo.Create();
             }
 
-            ProductImagesDirInfo = PublicFilesDirInfo.CreateSubdirectory("images").CreateSubdirectory("products");
         }
 
         public static void Main(string[] args)

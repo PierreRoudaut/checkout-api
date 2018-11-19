@@ -9,5 +9,12 @@ namespace Checkout.Api.Products.Models
         List<Product> GetAllProducts();
         bool UpdateProduct(Product product);
         bool Delete(Product product);
+
+        /// <summary>
+        /// Check if a given product with id exists
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        bool Exists(int id);
     }
 }
