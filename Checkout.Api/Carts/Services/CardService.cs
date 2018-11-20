@@ -1,13 +1,13 @@
-﻿using Checkout.Api.Products.Models;
+﻿using Checkout.Api.Carts.Models;
+using Checkout.Api.Hubs;
+using Checkout.Api.Products.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Primitives;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Checkout.Api.Carts.Models;
-using Checkout.Api.Hubs;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Primitives;
-using Serilog;
 
 namespace Checkout.Api.Carts.Services
 {
@@ -25,24 +25,26 @@ namespace Checkout.Api.Carts.Services
 
         private const string CartCacheKeyFormat = "[cart][{0}]";
 
-        public MemoryCacheEntryOptions CreateCacheEntryExtensions()
+        public void StoreCartToCache(string cartId, Cart cart)
         {
-            var expirationMinutes = 10;
-            var expirationTime = DateTime.Now.AddMinutes(expirationMinutes);
-            var expirationToken = new CancellationChangeToken(
-                new CancellationTokenSource(TimeSpan.FromMinutes(expirationMinutes)).Token);
-
-            var cacheEntryOptions = new MemoryCacheEntryOptions()
-                .SetPriority(CacheItemPriority.NeverRemove)
-                .SetAbsoluteExpiration(expirationTime)
-                .AddExpirationToken(expirationToken)
-                .RegisterPostEvictionCallback(callback: CacheItemRemoved, state: this);
-            return cacheEntryOptions;
+            const int expirationMinutes = 1;
+            var memoryCacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                Priority = CacheItemPriority.NeverRemove,
+                ExpirationTokens = { new CancellationChangeToken(new CancellationTokenSource(TimeSpan.FromMinutes(expirationMinutes)).Token) },
+                PostEvictionCallbacks = { new PostEvictionCallbackRegistration { State = this, EvictionCallback = CacheItemRemoved } }
+            };
+            if (memoryCache.GetType().Name != "IMemoryCacheProxy") memoryCache.Set(cartId, cart, memoryCacheEntryOptions);
         }
 
         private void CacheItemRemoved(object key, object value, EvictionReason reason, object state)
         {
-            Log.Information(key + " was removed");
+            if (reason != EvictionReason.TokenExpired) return;
+            var cacheCartId = (string)key;
+            var cart = (Cart)value;
+            var self = (CartService)state;
+            Log.Information("Cart with id:" + cart.Id + " was removed");
+            self.hubContext.Clients.All.SendAsync("CartExpired", cart.Id);
         }
 
         public CartService(IMemoryCache memoryCache, IProductRepository productRepository, IHubContext<NotifyHub> hubContext)
@@ -70,7 +72,7 @@ namespace Checkout.Api.Carts.Services
                 CartItems = new Dictionary<int, CartItem>()
             };
 
-            memoryCache.Set(string.Format(CartCacheKeyFormat, cart.Id), cart, CreateCacheEntryExtensions());
+            StoreCartToCache(string.Format(CartCacheKeyFormat, cart.Id), cart);
             return cart;
         }
 
@@ -87,7 +89,7 @@ namespace Checkout.Api.Carts.Services
             }
 
             cart.CartItems.Clear();
-            memoryCache.Set(cartId, cart, CreateCacheEntryExtensions());
+            StoreCartToCache(string.Format(CartCacheKeyFormat, cart.Id), cart);
             return true;
         }
 
@@ -124,8 +126,8 @@ namespace Checkout.Api.Carts.Services
             }
 
             cart.CartItems[item.ProductId] = item;
-            memoryCache.Set(cartId, cart, CreateCacheEntryExtensions());
-            hubContext.Clients.All.SendAsync("ReceiveMessage", item).Wait();
+            StoreCartToCache(string.Format(CartCacheKeyFormat, cart.Id), cart);
+            hubContext.Clients.All.SendAsync("ReceiveMessage", item);
             return true;
         }
 
@@ -143,7 +145,9 @@ namespace Checkout.Api.Carts.Services
             }
 
             cart.CartItems.Remove(productId);
-            memoryCache.Set(cartId, cart, CreateCacheEntryExtensions());
+            StoreCartToCache(string.Format(CartCacheKeyFormat, cart.Id), cart);
+
+            StoreCartToCache(string.Format(CartCacheKeyFormat, cart.Id), cart);
             return true;
         }
     }

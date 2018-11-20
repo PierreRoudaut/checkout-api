@@ -8,6 +8,7 @@ using System.Linq;
 using Checkout.Api.Carts.Models;
 using Checkout.Api.Carts.Services;
 using Checkout.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 
 namespace Checkout.Api.Tests.Carts
@@ -18,16 +19,16 @@ namespace Checkout.Api.Tests.Carts
         private Mock<IProductRepository> repository;
         private Mock<IMemoryCache> memoryCache;
         private Mock<ICacheEntry> cacheEntry;
-        private Mock<INotifyHub> hub;
+        private Mock<IHubContext<NotifyHub>> hub;
 
         [SetUp]
         public void Setup()
         {
+            hub = new Mock<IHubContext<NotifyHub>>();
             cacheEntry = new Mock<ICacheEntry>();
             memoryCache = new Mock<IMemoryCache>();
             memoryCache.Setup(x => x.CreateEntry(It.IsAny<string>())).Returns(cacheEntry.Object);
             repository = new Mock<IProductRepository>();
-            hub = new Mock<INotifyHub>();
         }
 
         [TestCase(null, 0)]
@@ -130,6 +131,7 @@ namespace Checkout.Api.Tests.Carts
             repository.Setup(x => x.Find(It.IsAny<int>())).Returns(product);
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
             var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
+
             var error = new CartOperationError();
             Assert.IsTrue(service.SetCartItem("123", new CartItem { Quantity = 3, ProductId = 42 }, out error));
             Assert.AreEqual(1, cart.CartItems.Count);
