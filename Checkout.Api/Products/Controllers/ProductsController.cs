@@ -15,11 +15,13 @@ namespace Checkout.Api.Products.Controllers
     {
         private readonly IProductRepository repository;
         private readonly ProductImageService productImageService;
+        private readonly IProductCacheService productCacheService;
 
-        public ProductsController(IProductRepository repository, ProductImageService productImageService)
+        public ProductsController(IProductRepository repository, ProductImageService productImageService, IProductCacheService productCacheService)
         {
             this.repository = repository;
             this.productImageService = productImageService;
+            this.productCacheService = productCacheService;
         }
 
         /// <summary>
@@ -121,7 +123,7 @@ namespace Checkout.Api.Products.Controllers
         [ProducesResponseType(typeof(List<Product>), 200)]
         public ObjectResult GetProducts()
         {
-            var products = repository.GetAllProducts();
+            var products = productCacheService.List();
             return Ok(products);
         }
     }

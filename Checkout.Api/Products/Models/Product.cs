@@ -16,5 +16,8 @@ namespace Checkout.Api.Products.Models
         public double Price { get; set; }
         public string ImageUrl { get; set; }
         public int Stock { get; set; }
+
+        [NotMapped]
+        public int Retained { get; set; }
     }
 }

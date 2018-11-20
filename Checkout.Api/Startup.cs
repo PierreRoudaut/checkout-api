@@ -64,8 +64,9 @@ namespace Checkout.Api
 
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<ProductImageService>();
-            services.AddScoped<CartService>();
+            services.AddScoped<CustomerCartService>();
             services.AddScoped<NotifyHub>();
+            services.AddScoped<IProductCacheService, ProductCacheService>();
 
             services
                 .AddMvc()

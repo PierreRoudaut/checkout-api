@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
-using Checkout.Api.Carts.Models;
+﻿using Checkout.Api.Carts.Models;
 using Checkout.Api.Carts.Services;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace Checkout.Api.Carts.Controllers
 {
@@ -10,9 +10,9 @@ namespace Checkout.Api.Carts.Controllers
     [Produces("application/json")]
     public class CartController : ControllerBase
     {
-        private readonly CartService service;
+        private readonly CustomerCartService service;
 
-        public CartController(CartService service)
+        public CartController(CustomerCartService service)
         {
             this.service = service;
         }
@@ -23,9 +23,17 @@ namespace Checkout.Api.Carts.Controllers
         /// <returns></returns>
         [HttpGet("{cartId}", Name = "Cart")]
         [ProducesResponseType(typeof(Cart), 200)]
+        [ProducesResponseType(404)]
         public ObjectResult GetCart(string cartId = null)
         {
-            var cart = service.GetOrCreateCart(cartId);
+            var cart = service.GetCart(cartId);
+            if (cart == null)
+            {
+                return StatusCode(404, new
+                {
+                    Message = "Cart not found"
+                });
+            }
             return StatusCode(200, cart);
         }
 
@@ -38,14 +46,15 @@ namespace Checkout.Api.Carts.Controllers
         [ProducesResponseType(404)]
         public ObjectResult ClearCart([Required] string cartId)
         {
-            if (!service.ClearCart(cartId))
+            var cart = service.ClearCart(cartId);
+            if (cart == null)
             {
                 return StatusCode(404, new
                 {
                     Message = "Cart not found"
                 });
             }
-            return StatusCode(200, true);
+            return StatusCode(200, cart);
         }
 
         /// <summary>
@@ -55,13 +64,14 @@ namespace Checkout.Api.Carts.Controllers
         [HttpPost("{cartId}/setItem", Name = "SetItemToCart")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public ObjectResult SetItem([Required] string cartId, [FromBody] CartItem cartItem)
+        public ObjectResult SetItem(string cartId, [FromBody] CartItem cartItem)
         {
-            if (!service.SetCartItem(cartId, cartItem, out var error))
+            var cart = service.SetCartItem(cartId, cartItem, out var error);
+            if (cart == null)
             {
                 return StatusCode(error.StatusCode, new { error.Message });
             }
-            return StatusCode(200, true);
+            return StatusCode(200, cart);
         }
 
         /// <summary>
@@ -73,11 +83,12 @@ namespace Checkout.Api.Carts.Controllers
         [ProducesResponseType(404)]
         public ObjectResult RemoveItem([Required] string cartId, [Required] int productId)
         {
-            if (!service.RemoveCartItem(cartId, productId))
+            var cart = service.RemoveCartItem(cartId, productId);
+            if (cart == null)
             {
                 return StatusCode(404, new { Message = "Cart not found" });
             }
-            return StatusCode(200, true);
+            return StatusCode(200, cart);
         }
     }
 }
