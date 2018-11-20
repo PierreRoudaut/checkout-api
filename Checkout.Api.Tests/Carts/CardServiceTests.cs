@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Checkout.Api.Carts.Models;
 using Checkout.Api.Carts.Services;
+using Checkout.Api.Hubs;
 
 
 namespace Checkout.Api.Tests.Carts
@@ -17,6 +18,7 @@ namespace Checkout.Api.Tests.Carts
         private Mock<IProductRepository> repository;
         private Mock<IMemoryCache> memoryCache;
         private Mock<ICacheEntry> cacheEntry;
+        private Mock<INotifyHub> hub;
 
         [SetUp]
         public void Setup()
@@ -25,6 +27,7 @@ namespace Checkout.Api.Tests.Carts
             memoryCache = new Mock<IMemoryCache>();
             memoryCache.Setup(x => x.CreateEntry(It.IsAny<string>())).Returns(cacheEntry.Object);
             repository = new Mock<IProductRepository>();
+            hub = new Mock<INotifyHub>();
         }
 
         [TestCase(null, 0)]
@@ -41,7 +44,7 @@ namespace Checkout.Api.Tests.Carts
             var obj = (object)cart;
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(nbItems > 0);
 
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
             var retrievedcart = service.GetOrCreateCart(cartId);
 
             Assert.AreEqual(nbItems, retrievedcart.CartItems.Count);
@@ -54,7 +57,7 @@ namespace Checkout.Api.Tests.Carts
             var obj = (object)cart;
 
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(false);
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
             Assert.IsFalse(service.ClearCart("123"));
         }
 
@@ -68,7 +71,7 @@ namespace Checkout.Api.Tests.Carts
             var obj = (object)cart;
 
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
 
             Assert.IsTrue(service.ClearCart("123"));
             Assert.IsEmpty(cart.CartItems);
@@ -79,7 +82,7 @@ namespace Checkout.Api.Tests.Carts
         [Test]
         public void SetCartItemCaseInvalidQuantity()
         {
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
             var error = new CartOperationError();
             Assert.IsFalse(service.SetCartItem("123", new CartItem { Quantity = 0 }, out error));
             Assert.AreEqual(400, error.StatusCode);
@@ -90,7 +93,7 @@ namespace Checkout.Api.Tests.Carts
         public void SetCartItemCaseProductNotFound()
         {
             repository.Setup(x => x.Find(It.IsAny<int>())).Returns((Product)null);
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
             var error = new CartOperationError();
             Assert.IsFalse(service.SetCartItem("123", new CartItem { Quantity = 1, ProductId = 42 }, out error));
             Assert.AreEqual(400, error.StatusCode);
@@ -106,7 +109,7 @@ namespace Checkout.Api.Tests.Carts
             var obj = (object)cart;
 
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(false);
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
             var error = new CartOperationError();
             Assert.IsFalse(service.SetCartItem("123", new CartItem { Quantity = 1, ProductId = 42 }, out error));
             Assert.AreEqual(404, error.StatusCode);
@@ -126,7 +129,7 @@ namespace Checkout.Api.Tests.Carts
 
             repository.Setup(x => x.Find(It.IsAny<int>())).Returns(product);
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
             var error = new CartOperationError();
             Assert.IsTrue(service.SetCartItem("123", new CartItem { Quantity = 3, ProductId = 42 }, out error));
             Assert.AreEqual(1, cart.CartItems.Count);
@@ -142,7 +145,7 @@ namespace Checkout.Api.Tests.Carts
             var obj = (object)cart;
 
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(false);
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
             Assert.IsFalse(service.RemoveCartItem("123", 42));
         }
 
@@ -160,7 +163,7 @@ namespace Checkout.Api.Tests.Carts
             var obj = (object)cart;
 
             memoryCache.Setup(x => x.TryGetValue(It.IsAny<string>(), out obj)).Returns(true);
-            var service = new CartService(memoryCache.Object, repository.Object);
+            var service = new CartService(memoryCache.Object, repository.Object, hub.Object);
 
             Assert.IsTrue(service.RemoveCartItem("123", 42));
             Assert.AreEqual(1, cart.CartItems.Count);

@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Checkout.Api.Carts.Models;
+using Checkout.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Primitives;
 using Serilog;
 
@@ -19,6 +21,7 @@ namespace Checkout.Api.Carts.Services
     {
         private readonly IMemoryCache memoryCache;
         private readonly IProductRepository productRepository;
+        private readonly IHubContext<NotifyHub> hubContext;
 
         private const string CartCacheKeyFormat = "[cart][{0}]";
 
@@ -42,10 +45,11 @@ namespace Checkout.Api.Carts.Services
             Log.Information(key + " was removed");
         }
 
-        public CartService(IMemoryCache memoryCache, IProductRepository productRepository)
+        public CartService(IMemoryCache memoryCache, IProductRepository productRepository, IHubContext<NotifyHub> hubContext)
         {
             this.memoryCache = memoryCache;
             this.productRepository = productRepository;
+            this.hubContext = hubContext;
         }
 
         /// <summary>
@@ -121,6 +125,7 @@ namespace Checkout.Api.Carts.Services
 
             cart.CartItems[item.ProductId] = item;
             memoryCache.Set(cartId, cart, CreateCacheEntryExtensions());
+            hubContext.Clients.All.SendAsync("ReceiveMessage", item).Wait();
             return true;
         }
 
