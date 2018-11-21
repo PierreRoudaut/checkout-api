@@ -7,4 +7,4 @@ script:
  - export TEST_PROJECT_NAME=Checkout.Api
  - dotnet restore
  - dotnet build
- - dotnet test $TEST_PROJECT_NAME --filter "TestCategory!=ThirdParty"
+ - dotnet test $TEST_PROJECT_NAME

@@ -46,13 +46,10 @@ namespace Checkout.Api.Carts.Controllers
         [ProducesResponseType(404)]
         public ObjectResult ClearCart([Required] string cartId)
         {
-            var cart = service.ClearCart(cartId);
+            var cart = service.ClearCart(cartId, out var error);
             if (cart == null)
             {
-                return StatusCode(404, new
-                {
-                    Message = "Cart not found"
-                });
+                return StatusCode(error.StatusCode, new { error.Message });
             }
             return StatusCode(200, cart);
         }
@@ -83,7 +80,7 @@ namespace Checkout.Api.Carts.Controllers
         [ProducesResponseType(404)]
         public ObjectResult RemoveItem([Required] string cartId, [Required] int productId)
         {
-            var cart = service.RemoveCartItem(cartId, productId);
+            var cart = service.RemoveCartItem(cartId, productId, out var error);
             if (cart == null)
             {
                 return StatusCode(404, new { Message = "Cart not found" });

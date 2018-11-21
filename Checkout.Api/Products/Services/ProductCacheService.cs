@@ -13,6 +13,8 @@ namespace Checkout.Api.Products.Services
 
         private const string ProductCacheKeyFormat = "[product][{0}]";
 
+        public string ProductCacheKey(int productId) => string.Format(ProductCacheKeyFormat, productId);
+
 
         public ProductCacheService(IProductRepository repository, IMemoryCache memoryCache)
         {
@@ -20,12 +22,17 @@ namespace Checkout.Api.Products.Services
             this.memoryCache = memoryCache;
         }
 
+        /// <summary>
+        /// Retrieve all products in repository merged with retained data from memory cache
+        /// Initialize cache entries if non exist
+        /// </summary>
+        /// <returns></returns>
         public List<Product> List()
         {
             var products = repository.GetAllProducts();
             foreach (var product in products)
             {
-                var productCacheKey = string.Format(ProductCacheKeyFormat, product.Id);
+                var productCacheKey = ProductCacheKey(product.Id);
                 if (!memoryCache.TryGetValue(productCacheKey, out Product cachedProduct))
                 {
                     product.Retained = 0;
@@ -44,42 +51,36 @@ namespace Checkout.Api.Products.Services
             return products;
         }
 
-        public Product FindCached(int productId)
-        {
-            var productCacheKey = string.Format(ProductCacheKeyFormat, productId);
-            if (!memoryCache.TryGetValue(productCacheKey, out Product cachedProduct))
-            {
-                return null;
-            }
-
-            return cachedProduct;
-        }
-
-        public void StoreCachedProduct(Product product)
-        {
-            var productCacheKey = string.Format(ProductCacheKeyFormat, product.Id);
-            memoryCache.Set(productCacheKey, product);
-        }
-
+        /// <summary>
+        /// Attempt to update the retained quantity of a given product
+        /// </summary>
+        /// <param name="quantity"></param>
+        /// <param name="productId"></param>
+        /// <param name="product"></param>
+        /// <param name="error"></param>
+        /// <returns></returns>
         public bool TryUpdateRetained(int quantity, int productId, out Product product, out CartOperationError error)
         {
-            error = null;
-            product = FindCached(productId);
+            error = new CartOperationError();
+            product = null;
+            var productCacheKey = ProductCacheKey(productId);
+            if (!memoryCache.TryGetValue(productCacheKey, out product))
+            {
+                error.StatusCode = 404;
+                error.Message = "Product not found";
+            }
 
             var remaining = product.Stock - product.Retained;
 
             if (quantity > 0 && quantity > remaining)
             {
-                error = new CartOperationError
-                {
-                    StatusCode = 400,
-                    Message = "Quantity too large requested"
-                };
+                error.StatusCode = 400;
+                error.Message = "Quantity too large requested";
                 return false;
             }
 
             product.Retained += quantity;
-            StoreCachedProduct(product);
+            memoryCache.Set(productCacheKey, product);
 
             return true;
         }

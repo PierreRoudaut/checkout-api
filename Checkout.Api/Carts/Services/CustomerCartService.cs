@@ -1,6 +1,6 @@
 ﻿using Checkout.Api.Carts.Models;
 using Checkout.Api.Hubs;
-using Checkout.Api.Products.Models;
+using Checkout.Api.Products.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
@@ -8,9 +8,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
-using Checkout.Api.Products.Services;
 
 namespace Checkout.Api.Carts.Services
 {
@@ -28,6 +26,8 @@ namespace Checkout.Api.Carts.Services
 
         private const string CartCacheKeyFormat = "[cart][{0}]";
 
+        private string CartCacheKey(string cartId) => string.Format(CartCacheKeyFormat, cartId);
+
         public void StoreCartToCache(string cartId, Cart cart)
         {
             const int expirationMinutes = 1;
@@ -42,8 +42,8 @@ namespace Checkout.Api.Carts.Services
 
         private void CacheItemRemoved(object key, object value, EvictionReason reason, object state)
         {
+            Log.Information("Evicted cache entry " + key + " => " + reason);
             if (reason != EvictionReason.TokenExpired) return;
-            var cacheCartId = (string)key;
             var cart = (Cart)value;
             var self = (CustomerCartService)state;
             Log.Information("Cart with id:" + cart.Id + " was removed");
@@ -56,7 +56,7 @@ namespace Checkout.Api.Carts.Services
                 foreach (var retainedItem in cart.CartItems)
                 {
                     self.productCacheService.TryUpdateRetained(-retainedItem.Value.Quantity, retainedItem.Key, out var product, out var error);
-                    self.hubContext.Clients.All.SendAsync(AppEvents.ProductUpdated, product).Wait();
+                    self.hubContext.Clients?.All?.SendAsync(AppEvents.ProductUpdated, product).Wait();
                 }
             }
         }
@@ -75,7 +75,7 @@ namespace Checkout.Api.Carts.Services
         /// <returns></returns>
         public Cart GetCart(string cartId = null)
         {
-            if (cartId != null && memoryCache.TryGetValue(string.Format(CartCacheKeyFormat, cartId), out Cart cart))
+            if (cartId != null && memoryCache.TryGetValue(CartCacheKey(cartId), out Cart cart))
             {
                 return cart;
             }
@@ -83,6 +83,10 @@ namespace Checkout.Api.Carts.Services
             return null;
         }
 
+        /// <summary>
+        /// Initialize and empty cart
+        /// </summary>
+        /// <returns></returns>
         public Cart CreateCart()
         {
             return new Cart
@@ -98,26 +102,36 @@ namespace Checkout.Api.Carts.Services
         /// </summary>
         /// <param name="cartId"></param>
         /// <returns></returns>
-        public Cart ClearCart(string cartId)
+        public Cart ClearCart(string cartId, out CartOperationError error)
         {
-            if (!memoryCache.TryGetValue(string.Format(CartCacheKeyFormat, cartId), out Cart cart))
+            var cacheKey = CartCacheKey(cartId);
+            error = new CartOperationError();
+            if (!memoryCache.TryGetValue(cacheKey, out Cart cart))
             {
+                error.StatusCode = 404;
+                error.Message = "Cart not found";
                 return null;
             }
 
             foreach (var retainedItem in cart.CartItems)
             {
-                this.productCacheService.TryUpdateRetained(-retainedItem.Value.Quantity, retainedItem.Key, out var product, out var error);
-                this.hubContext.Clients.All.SendAsync(AppEvents.ProductUpdated, product).Wait();
+                if (!this.productCacheService.TryUpdateRetained(-retainedItem.Value.Quantity, retainedItem.Key,
+                    out var product, out error))
+                {
+                    Log.Error("Failed to clear cart " + cartId);
+                    Log.Error(error.Message);
+                    return null;
+                }
+                this.hubContext.Clients?.All?.SendAsync(AppEvents.ProductUpdated, product).Wait();
             }
             cart.CartItems.Clear();
-            StoreCartToCache(string.Format(CartCacheKeyFormat, cart.Id), cart);
+            StoreCartToCache(cacheKey, cart);
             return cart;
         }
 
         /// <summary>
-        /// 
-        /// Adds or replace (if different quantity) a cart item and 
+        /// Add or update the quantity of a given product into a cart
+        /// Also creates a new cart if none exists
         /// </summary>
         /// <param name="cartId"></param>
         /// <param name="item"></param>
@@ -146,6 +160,8 @@ namespace Checkout.Api.Carts.Services
 
             if (!productCacheService.TryUpdateRetained(quantity, item.ProductId, out var product, out error))
             {
+                error.StatusCode = 400;
+                error.Message = "Failed to add product to cart";
                 return null;
             }
             cart.CartItems[item.ProductId] = item;
@@ -159,27 +175,33 @@ namespace Checkout.Api.Carts.Services
         /// </summary>
         /// <param name="cartId"></param>
         /// <param name="productId"></param>
+        /// <param name="error"></param>
         /// <returns></returns>
-        public Cart RemoveCartItem(string cartId, int productId)
+        public Cart RemoveCartItem(string cartId, int productId, out CartOperationError error)
         {
+            error = new CartOperationError();
             if (!memoryCache.TryGetValue(string.Format(CartCacheKeyFormat, cartId), out Cart cart))
             {
+                error.StatusCode = 404;
+                error.Message = "Cart not found";
                 return null;
             }
 
             if (!cart.CartItems.TryGetValue(productId, out var existingItem))
             {
+                error.StatusCode = 400;
+                error.Message = "Product not added to cart";
                 return null;
             }
 
-            if (!productCacheService.TryUpdateRetained(-existingItem.Quantity, productId, out var product, out var error))
+            if (!productCacheService.TryUpdateRetained(-existingItem.Quantity, productId, out var product, out error))
             {
                 return null;
             }
 
             cart.CartItems.Remove(productId);
             StoreCartToCache(string.Format(CartCacheKeyFormat, cart.Id), cart);
-            hubContext.Clients.All.SendAsync(AppEvents.ProductUpdated, product);
+            hubContext.Clients?.All?.SendAsync(AppEvents.ProductUpdated, product);
             return cart;
         }
     }
