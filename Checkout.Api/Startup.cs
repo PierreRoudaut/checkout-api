@@ -128,7 +128,7 @@ namespace Checkout.Api
 
             app.UseSignalR(routes =>
             {
-                routes.MapHub<NotifyHub>("/hub");
+                routes.MapHub<NotifyHub>("/api/hub");
             });
 
             app.UseMvc();
