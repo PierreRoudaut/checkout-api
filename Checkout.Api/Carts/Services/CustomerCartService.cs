@@ -12,12 +12,6 @@ using System.Threading;
 
 namespace Checkout.Api.Carts.Services
 {
-    public static class AppEvents
-    {
-        public const string CartExpired = "CartExpired";
-        public const string ProductUpdated = "ProductUpdated";
-    }
-
     public class CustomerCartService
     {
         private readonly IMemoryCache memoryCache;
@@ -40,14 +34,20 @@ namespace Checkout.Api.Carts.Services
             if (memoryCache.GetType().Name != "IMemoryCacheProxy") memoryCache.Set(cartId, cart, memoryCacheEntryOptions);
         }
 
+        /// <summary>
+        /// Delegate method called upon cacheEntry eviction
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <param name="reason"></param>
+        /// <param name="state"></param>
         private void CacheItemRemoved(object key, object value, EvictionReason reason, object state)
         {
             Log.Information("Evicted cache entry " + key + " => " + reason);
             if (reason != EvictionReason.TokenExpired) return;
             var cart = (Cart)value;
             var self = (CustomerCartService)state;
-            Log.Information("Cart with id:" + cart.Id + " was removed");
-
+            Log.Information("Cart with id:" + cart.Id + " has expired");
             if (cart.CartItems.Any())
             {
                 // notify customer cart expired

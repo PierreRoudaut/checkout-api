@@ -1,10 +1,10 @@
 ﻿using Checkout.Api.Products.Models;
 using Checkout.Api.Products.Services;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
+using Checkout.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Checkout.Api.Products.Controllers
 {
@@ -16,12 +16,14 @@ namespace Checkout.Api.Products.Controllers
         private readonly IProductRepository repository;
         private readonly ProductImageService productImageService;
         private readonly IProductCacheService productCacheService;
+        private readonly IHubContext<NotifyHub> hubContext;
 
-        public ProductsController(IProductRepository repository, ProductImageService productImageService, IProductCacheService productCacheService)
+        public ProductsController(IProductRepository repository, ProductImageService productImageService, IProductCacheService productCacheService, IHubContext<NotifyHub> hubContext)
         {
             this.repository = repository;
             this.productImageService = productImageService;
             this.productCacheService = productCacheService;
+            this.hubContext = hubContext;
         }
 
         /// <summary>
@@ -49,7 +51,7 @@ namespace Checkout.Api.Products.Controllers
                     Message = "Failed to create user"
                 });
             }
-
+            hubContext.Clients?.All?.SendAsync(AppEvents.ProductUpdated, product).Wait();
             return StatusCode(201, product);
         }
 
@@ -88,6 +90,7 @@ namespace Checkout.Api.Products.Controllers
                     Message = "Failed to update user"
                 });
             }
+            hubContext.Clients?.All?.SendAsync(AppEvents.ProductUpdated, product).Wait();
             return StatusCode(200, product);
         }
 
@@ -102,6 +105,7 @@ namespace Checkout.Api.Products.Controllers
         [ProducesResponseType(404)]
         public ObjectResult DeleteProduct([Required] int id)
         {
+            // todo: check if a product is currently stored in a cart
             var product = repository.Find(id);
             if (product == null)
             {
