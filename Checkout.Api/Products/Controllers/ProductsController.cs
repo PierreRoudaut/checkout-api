@@ -52,6 +52,8 @@ namespace Checkout.Api.Products.Controllers
                     Message = "Failed to create user"
                 });
             }
+
+            productCacheService.SetProduct(product);
             hubContext.Clients?.All?.SendAsync(AppEvents.ProductUpdated, product).Wait();
             return StatusCode(201, product);
         }

@@ -68,6 +68,7 @@ namespace Checkout.Api.Products.Services
             {
                 error.StatusCode = 404;
                 error.Message = "Product not found";
+                return false;
             }
 
             var remaining = product.Stock - product.Retained;
@@ -83,6 +84,12 @@ namespace Checkout.Api.Products.Services
             memoryCache.Set(productCacheKey, product);
 
             return true;
+        }
+
+        public void SetProduct(Product product)
+        {
+            var productCacheKey = ProductCacheKey(product.Id);
+            memoryCache.Set(productCacheKey, product);
         }
     }
 }

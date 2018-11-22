@@ -8,5 +8,6 @@ namespace Checkout.Api.Products.Services
     {
         List<Product> List();
         bool TryUpdateRetained(int quantity, int productId, out Product product, out CartOperationError error);
+        void SetProduct(Product product);
     }
 }
