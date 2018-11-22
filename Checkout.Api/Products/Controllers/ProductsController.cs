@@ -119,7 +119,7 @@ namespace Checkout.Api.Products.Controllers
             {
                 return StatusCode(400, new
                 {
-                    Message = $"${product.Retained} items of this product are currently retained in carts"
+                    Message = $"{product.Retained} items of this product are currently retained in carts"
                 });
             }
 
