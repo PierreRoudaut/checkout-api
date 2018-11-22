@@ -13,7 +13,6 @@ On top of that, any iddle client that does not perform operations on their cart 
 ## Development Environment
 
 __Prerequesites__: Checkout API is powered by [ASP.NET Core 2.1](https://www.microsoft.com/net/download) and [SQL Server](https://www.microsoft.com/en-us/sql-server/). Those two main dependecies should be installed locally.
-Once 
 
 1. Clone the repo
 2. Run the following commands:
