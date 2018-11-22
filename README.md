@@ -46,8 +46,7 @@ dotnet test
 ```
 
 ## TODO
-
- - Support realtime products update for administration page
+ - Support stock increase in administration
  - Add authentication
  - Setup continuous deployment script
  - Support checkout
