@@ -8,10 +8,7 @@ namespace Checkout.Api.Tests.Products.Models
         [Test]
         public void GetAllProductTest()
         {
-            //var repo = new ProductRepository();
-            //var products = repo.GetAllProducts();
-
-            //Assert.Less(0, products.Count);
+            //todo: implement
         }
     }
 }

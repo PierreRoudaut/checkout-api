@@ -3,6 +3,7 @@ using Checkout.Api.Products.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Checkout.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
@@ -105,8 +106,7 @@ namespace Checkout.Api.Products.Controllers
         [ProducesResponseType(404)]
         public ObjectResult DeleteProduct([Required] int id)
         {
-            // todo: check if a product is currently stored in a cart
-            var product = repository.Find(id);
+            var product = productCacheService.List().FirstOrDefault(x => x.Id == id);
             if (product == null)
             {
                 return StatusCode(404, new
@@ -114,12 +114,20 @@ namespace Checkout.Api.Products.Controllers
                     Message = "Product not found"
                 });
             }
+            // preventing product deletion if currently stored in at least 1 cart
+            if (product.Retained > 0)
+            {
+                return StatusCode(400, new
+                {
+                    Message = $"${product.Retained} items of this product are currently retained in carts"
+                });
+            }
 
             if (!repository.Delete(product))
             {
                 return StatusCode(400, new { Message = "Failed to delete product" });
             }
-
+            hubContext.Clients?.All?.SendAsync(AppEvents.ProductDeleted, product).Wait();
             return StatusCode(200, true);
         }
 

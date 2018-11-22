@@ -4,5 +4,6 @@
     {
         public const string CartExpired = "CartExpired";
         public const string ProductUpdated = "ProductUpdated";
+        public const string ProductDeleted = "ProductDeleted";
     }
 }
