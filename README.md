@@ -32,7 +32,7 @@ dotnet run
 
 A [static documentation](swagger.md) of the API can be found here
 
-Otherwise, the API is fully self-documented by swagger and is accessible at _/api/swagger_ 
+Otherwise, the API is fully self-documented by swagger and is accessible once the application is deployed at _/api/swagger_ 
 
 ## Continuous Integration
 
